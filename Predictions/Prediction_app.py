@@ -49,7 +49,8 @@ def highlight_fraud(row):
 
 # Start of the Streamlit UI
 st.title('Fraud Detection with AI')
-tab1, tab2 = st.tabs([ "Dataset Description","Predictive Analysis"])
+tab1, tab2, tab3 = st.tabs(["Dataset Description", "Predictive Analysis from BigQuery", "Predictive Analysis from CSV"])
+
 
 # Tab 1: Dataset Description
 with tab1:
@@ -101,6 +102,42 @@ with tab2:
     st.markdown('1. Enter the number of recent transactions you wish to analyze for fraud detection.')
     st.markdown('2. Click on **Analyze Transactions** to fetch the data and view the predictive analysis.')
     st.markdown('Rows highlighted in yellow indicate transactions predicted as fraudulent.')
+
+# New Tab 3: Predictive Analysis from CSV
+def fetch_data_from_csv(CSV_FILE_PATH):
+    import pandas as pd
+    # Read the CSV file
+    df = pd.read_csv(CSV_FILE_PATH)
+
+    # Remove the specified columns
+    columns_to_remove = [VAR_TARGET, VAR_OMIT, 'splits']
+    df = df.drop(columns=columns_to_remove, errors='ignore')
+
+    # Return the entire DataFrame
+    return df
+with tab3:
+    st.header("Upload a CSV for Analysis")
+    uploaded_file = st.file_uploader("Choose a file")
+
+    if st.button('Analyze File'):
+        with st.spinner('Fetching transactions...'):
+            data = fetch_data_from_csv(uploaded_file)
+            st.write('Transactions fetched:')
+            st.dataframe(data)
+
+            instances = data.to_dict(orient='records')
+            predictions = predict_custom_trained_model_sample(PROJECT_ID, ENDPOINT_ID, instances)
+
+            # Adding prediction results to the DataFrame
+            data['Predicted_Class'] = [pred["predicted_Class"] for pred in predictions]
+            data['Class_Values'] = [", ".join(pred["Class_values"]) for pred in predictions]  # Joining list into comma-separated string
+            data['Class_Probs'] = [", ".join(map(str, pred["Class_probs"])) for pred in predictions]  # Joining list into comma-separated string
+
+            st.success('Predictions complete!')
+            st.write('Analysis results:')
+
+            # Apply the highlight function for each row based on 'Predicted_Class'
+            st.dataframe(data.style.apply(highlight_fraud, subset=['Predicted_Class'], axis=1))
 
 st.markdown('---')
 st.markdown('Developed by Zachary Nguyen')
