@@ -63,3 +63,4 @@ predict_custom_trained_model_sample(
     location="us-central1",
     instances=newobs  # Pass the entire list of instances
 )
+
