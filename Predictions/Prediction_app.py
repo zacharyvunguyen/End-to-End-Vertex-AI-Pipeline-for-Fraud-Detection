@@ -76,6 +76,7 @@ with tab1:
 
 # Tab 2: Predictive Analysis
 with tab2:
+    st.header("Analyze Transactions from BigQuery")
     n = st.number_input('Number of transactions to analyze:', min_value=1, value=100, step=1)
 
     if st.button('Analyze Transactions'):
@@ -104,40 +105,22 @@ with tab2:
     st.markdown('Rows highlighted in yellow indicate transactions predicted as fraudulent.')
 
 # New Tab 3: Predictive Analysis from CSV
-def fetch_data_from_csv(CSV_FILE_PATH):
-    import pandas as pd
-    # Read the CSV file
-    df = pd.read_csv(CSV_FILE_PATH)
-
-    # Remove the specified columns
-    columns_to_remove = [VAR_TARGET, VAR_OMIT, 'splits']
-    df = df.drop(columns=columns_to_remove, errors='ignore')
-
-    # Return the entire DataFrame
-    return df
 with tab3:
-    st.header("Upload a CSV for Analysis")
-    uploaded_file = st.file_uploader("Choose a file")
+    st.header("Analyze Transactions from a CSV File")
+    uploaded_file = st.file_uploader("Choose a CSV file")
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file).drop(columns=[VAR_TARGET, VAR_OMIT, 'splits'], errors='ignore')
+        if st.button('Predict from CSV'):
+            with st.spinner('Making predictions...'):
+                instances = df.to_dict(orient='records')
+                predictions = predict_custom_trained_model_sample(PROJECT_ID, ENDPOINT_ID, instances)
+                df['Predicted_Class'] = [pred["predicted_Class"] for pred in predictions]
+                df['Class_Values'] = [", ".join(pred["Class_values"]) for pred in predictions]
+                df['Class_Probs'] = [", ".join(map(str, pred["Class_probs"])) for pred in predictions]
+                st.success('Predictions complete!')
+                st.write('Analysis results:')
+                st.dataframe(df.style.apply(highlight_fraud, subset=['Predicted_Class'], axis=1))
 
-    if st.button('Analyze File'):
-        with st.spinner('Fetching transactions...'):
-            data = fetch_data_from_csv(uploaded_file)
-            st.write('Transactions fetched:')
-            st.dataframe(data)
-
-            instances = data.to_dict(orient='records')
-            predictions = predict_custom_trained_model_sample(PROJECT_ID, ENDPOINT_ID, instances)
-
-            # Adding prediction results to the DataFrame
-            data['Predicted_Class'] = [pred["predicted_Class"] for pred in predictions]
-            data['Class_Values'] = [", ".join(pred["Class_values"]) for pred in predictions]  # Joining list into comma-separated string
-            data['Class_Probs'] = [", ".join(map(str, pred["Class_probs"])) for pred in predictions]  # Joining list into comma-separated string
-
-            st.success('Predictions complete!')
-            st.write('Analysis results:')
-
-            # Apply the highlight function for each row based on 'Predicted_Class'
-            st.dataframe(data.style.apply(highlight_fraud, subset=['Predicted_Class'], axis=1))
 
 st.markdown('---')
 st.markdown('Developed by Zachary Nguyen')
