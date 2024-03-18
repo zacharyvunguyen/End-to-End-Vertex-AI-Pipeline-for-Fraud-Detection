@@ -72,4 +72,4 @@ st.markdown('2. Click on **Analyze Transactions** to fetch the data and view the
 st.markdown('Rows highlighted in yellow indicate transactions predicted as fraudulent.')
 
 st.markdown('---')
-st.markdown('Developed by the Fraud Detection Team')
+st.markdown('Developed by Zachary Nguyen')
